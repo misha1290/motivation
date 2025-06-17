@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Часовой таймер</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; }
+    input, textarea, button { margin: 5px 0; padding: 10px; font-size: 16px; width: 100%; }
+    h1, h2 { text-align: center; }
+    .controls { display: flex; justify-content: space-between; }
+    .controls button { width: 32%; }
+    #clock { text-align: center; font-size: 18px; color: gray; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Таймер с уменьшением числа</h1>
+  <h2 id="counter">0</h2>
+
+  <div class="controls">
+    <button onclick="changeCounter(-1)">-1</button>
+    <button onclick="togglePause()" id="pauseBtn">⏸ Пауза</button>
+    <button onclick="changeCounter(1)">+1</button>
+  </div>
+
+  <br>
+  <label for="notes">Заметки:</label>
+  <textarea id="notes" rows="6" placeholder="Ваши заметки..."></textarea>
+
+  <div id="clock"></div>
+
+  <script>
+    const counterEl = document.getElementById('counter');
+    const notesEl = document.getElementById('notes');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const clockEl = document.getElementById('clock');
+
+    let data = JSON.parse(localStorage.getItem('timerData')) || {
+      counter: 0,
+      lastHour: new Date().getHours(),
+      paused: false,
+      notes: ''
+    };
+
+    function saveData() {
+      localStorage.setItem('timerData', JSON.stringify(data));
+    }
+
+    function updateCounterDisplay() {
+      counterEl.textContent = data.counter;
+    }
+
+    function tick() {
+      const now = new Date();
+      const currentHour = now.getHours();
+
+      if (!data.paused && currentHour !== data.lastHour && now.getMinutes() === 0) {
+        data.counter -= 1;
+        data.lastHour = currentHour;
+        updateCounterDisplay();
+        saveData();
+      }
+    }
+
+    function updateClock() {
+      const now = new Date();
+      const h = String(now.getHours()).padStart(2, '0');
+      const m = String(now.getMinutes()).padStart(2, '0');
+      const s = String(now.getSeconds()).padStart(2, '0');
+      clockEl.textContent = `Текущее время: ${h}:${m}:${s}`;
+    }
+
+    function changeCounter(amount) {
+      data.counter += amount;
+      updateCounterDisplay();
+      saveData();
+    }
+
+    function togglePause() {
+      data.paused = !data.paused;
+      pauseBtn.textContent = data.paused ? '▶️ Продолжить' : '⏸ Пауза';
+      saveData();
+    }
+
+    notesEl.value = data.notes;
+    notesEl.addEventListener('input', () => {
+      data.notes = notesEl.value;
+      saveData();
+    });
+
+    updateCounterDisplay();
+    pauseBtn.textContent = data.paused ? '▶️ Продолжить' : '⏸ Пауза';
+
+    setInterval(tick, 30 * 1000); // проверка каждые 30 секунд
+    setInterval(updateClock, 1000); // обновление часов каждую секунду
+  </script>
+</body>
+</html>
