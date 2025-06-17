@@ -7,48 +7,16 @@
     <title>Часовой таймер</title>
     <link rel="stylesheet" href="./style.css">
   <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-      max-width: 800px;
-      margin: auto;
-    }
-    h1, h2 {
-      text-align: center;
-    }
-    #counter {
-      font-size: 40vh;
-      text-align: center;
-      margin: 0;
-    }
-    .controls {
-      display: flex;
-      justify-content: space-between;
-      margin: 20px 0;
-    }
-    .controls button {
-      width: 32%;
-      font-size: 18px;
-      padding: 15px;
-    }
-    textarea {
-      width: 100%;
-      padding: 10px;
-      font-size: 16px;
-      box-sizing: border-box;
-      margin-top: 10px;
-    }
-    #clock {
-      text-align: center;
-      font-size: 20px;
-      color: gray;
-      margin-top: 15px;
-    }
+    body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; }
+    input, textarea, button { margin: 5px 0; padding: 10px; font-size: 16px; width: 100%; }
+    h1, h2 { text-align: center; }
+    .controls { display: flex; justify-content: space-between; }
+    .controls button { width: 32%; }
+    #clock { text-align: center; font-size: 18px; color: gray; margin-top: 10px; }
   </style>
 </head>
 <body>
-  <h1>Таймер</h1>
-  <h2 id="counter">0</h2>
+  <h1 id="counter">0</h2>
 
   <div class="controls">
     <button onclick="changeCounter(-1)">-1</button>
@@ -56,6 +24,7 @@
     <button onclick="changeCounter(1)">+1</button>
   </div>
 
+  <br>
   <label for="notes">Заметки:</label>
   <textarea id="notes" rows="6" placeholder="Ваши заметки..."></textarea>
 
@@ -69,7 +38,7 @@
 
     let data = JSON.parse(localStorage.getItem('timerData')) || {
       counter: 0,
-      lastTick: Date.now(),
+      lastHour: new Date().getHours(),
       paused: false,
       notes: ''
     };
@@ -82,33 +51,24 @@
       counterEl.textContent = data.counter;
     }
 
-    function processMissedTime() {
-      const now = Date.now();
-      const diffHours = Math.floor((now - data.lastTick) / (1000 * 60 * 60));
-      if (!data.paused && diffHours > 0) {
-        data.counter -= diffHours;
-        data.lastTick += diffHours * 60 * 60 * 1000;
+    function tick() {
+      const now = new Date();
+      const currentHour = now.getHours();
+
+      if (!data.paused && currentHour !== data.lastHour && now.getMinutes() === 0) {
+        data.counter -= 1;
+        data.lastHour = currentHour;
+        updateCounterDisplay();
         saveData();
       }
     }
 
-    function tick() {
+    function updateClock() {
       const now = new Date();
-      if (!data.paused && now.getMinutes() === 0) {
-        const currentHour = now.getHours();
-        const last = new Date(data.lastTick).getHours();
-
-        const nowTime = now.getTime();
-        const lastTime = data.lastTick;
-        const diffHours = Math.floor((nowTime - lastTime) / (1000 * 60 * 60));
-
-        if (diffHours > 0) {
-          data.counter -= diffHours;
-          data.lastTick = nowTime;
-          updateCounterDisplay();
-          saveData();
-        }
-      }
+      const h = String(now.getHours()).padStart(2, '0');
+      const m = String(now.getMinutes()).padStart(2, '0');
+      const s = String(now.getSeconds()).padStart(2, '0');
+      clockEl.textContent = `Текущее время: ${h}:${m}:${s}`;
     }
 
     function changeCounter(amount) {
@@ -120,34 +80,20 @@
     function togglePause() {
       data.paused = !data.paused;
       pauseBtn.textContent = data.paused ? '▶️ Продолжить' : '⏸ Пауза';
-      if (!data.paused) data.lastTick = Date.now();
       saveData();
     }
 
-    function updateClock() {
-      const now = new Date();
-      const h = String(now.getHours()).padStart(2, '0');
-      const m = String(now.getMinutes()).padStart(2, '0');
-      const s = String(now.getSeconds()).padStart(2, '0');
-      clockEl.textContent = `Текущее время: ${h}:${m}:${s}`;
-    }
-
-    // Загрузка
-    processMissedTime();
-    updateCounterDisplay();
     notesEl.value = data.notes;
-    pauseBtn.textContent = data.paused ? '▶️ Продолжить' : '⏸ Пауза';
-
-    // Слушатели
     notesEl.addEventListener('input', () => {
       data.notes = notesEl.value;
       saveData();
     });
 
-    // Интервалы
-    setInterval(tick, 60 * 1000);       // каждые 60 сек проверка -1
-    setInterval(updateClock, 1000);     // часы
+    updateCounterDisplay();
+    pauseBtn.textContent = data.paused ? '▶️ Продолжить' : '⏸ Пауза';
 
+    setInterval(tick, 30 * 1000); // проверка каждые 30 секунд
+    setInterval(updateClock, 1000); // обновление часов каждую секунду
   </script>
 </body>
 </html>
